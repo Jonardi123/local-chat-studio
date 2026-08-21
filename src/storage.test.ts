@@ -1,0 +1,3 @@
+import { describe, expect, it } from 'vitest'
+import { defaultSettings, migrateData, normalizeBaseUrl } from './storage'
+describe('storage migration',()=>{it('returns safe defaults for invalid data',()=>{expect(migrateData(null).settings).toEqual(defaultSettings)});it('preserves conversations and fills missing settings',()=>{const value=migrateData({settings:{baseUrl:'http://box:8080/'},conversations:[{id:'one'}],onboarded:true});expect(value.settings.baseUrl).toBe('http://box:8080/v1');expect(value.settings.temperature).toBe(.7);expect(value.conversations).toHaveLength(1)});it('normalizes v1 without duplicating it',()=>{expect(normalizeBaseUrl('http://box:8080/v1/')).toBe('http://box:8080/v1')})})
