@@ -2,6 +2,8 @@
 
 sudoN is a lightweight desktop and browser client for a locally hosted OpenAI-compatible model. It is designed around a 16k active Qwen context while preserving complete searchable chat history outside the model window.
 
+Desktop builds include **Settings → Software update**. sudoN checks the public release feed without credentials, downloads only the official installer matching the current platform into Downloads, shows progress, and opens it. Unsigned macOS builds still require closing sudoN and dragging the replacement app into Applications.
+
 ## Download
 
 Download the latest installer from **GitHub Releases**:
