@@ -4,9 +4,10 @@ import remarkGfm from 'remark-gfm'
 import { listModels, streamChat } from './api'
 import { exportData, loadData, migrateData, normalizeBaseUrl, saveData, STORAGE_KEY } from './storage'
 import type { AppData, Conversation, Message, Settings } from './types'
+import { makeId } from './id'
 import './App.css'
 
-const uid=()=>crypto.randomUUID()
+const uid=makeId
 const suggestions=['Explain quantum computing simply','Draft a friendly project update','Help me debug some code','Plan a productive weekend']
 
 function Markdown({children}:{children:string}){return <ReactMarkdown remarkPlugins={[remarkGfm]} components={{code({className,children,...props}){const block=Boolean(className);const text=String(children).replace(/\n$/,'');return block?<span className="codebox"><span className="codehead"><span>{className?.replace('language-','')||'code'}</span><button onClick={()=>navigator.clipboard.writeText(text)}>Copy</button></span><code className={className}>{text}</code></span>:<code {...props}>{children}</code>}}}>{children}</ReactMarkdown>}
