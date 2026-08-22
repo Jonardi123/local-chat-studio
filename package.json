@@ -11,7 +11,7 @@
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
     "lint": "oxlint src electron",
-    "test": "vitest run",
+    "test": "vitest run && node --test electron/skills.node.cjs",
     "preview": "vite preview",
     "desktop": "npm run build && electron .",
     "desktop:dist": "npm run build && electron-builder"

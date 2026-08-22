@@ -1,6 +1,50 @@
 {
   "version": 1,
+  "defaultModel": "gpt-oss-20b",
   "core": ["coding","context-management","conversation-recall","tool-use","filesystem","terminal","git","testing","failure-recovery","self-review","research","autonomous-worker","performance-tuning","full-access"],
+  "models": {
+    "gpt-oss-20b": {
+      "match": ["gpt-oss-20b", "gpt_oss-20b", "gpt-oss:20b"],
+      "always": [
+        "models/gpt-oss-20b/SKILL.md",
+        "core/context-management/SKILL.md",
+        "core/tool-use/SKILL.md",
+        "core/failure-recovery/SKILL.md"
+      ],
+      "routes": [
+        {
+          "name": "long-tasks",
+          "patterns": ["\\b(implement|build|refactor|migrate|repository|codebase|multi[- ]step|long[- ]running|end[- ]to[- ]end)\\b"],
+          "skills": ["models/gpt-oss-20b/long-tasks/SKILL.md", "core/autonomous-worker/SKILL.md"]
+        },
+        {
+          "name": "coding",
+          "patterns": ["\\b(code|coding|bug|debug|test|typescript|javascript|python|rust|api|function|class|compile|lint|repository|codebase|pull request|\\bpr\\b)\\b"],
+          "skills": ["core/coding/SKILL.md", "core/filesystem/SKILL.md", "core/testing/SKILL.md", "models/gpt-oss-20b/review/SKILL.md"]
+        },
+        {
+          "name": "review",
+          "patterns": ["\\b(review|audit|inspect the diff|regression|security review|correctness review)\\b"],
+          "skills": ["models/gpt-oss-20b/review/SKILL.md", "core/self-review/SKILL.md"]
+        },
+        {
+          "name": "precision",
+          "patterns": ["\\b(calculate|arithmetic|percentage|percent|conversion|convert units|statistics|financial|interest|duration|date difference|exact numeric)\\b"],
+          "skills": ["models/gpt-oss-20b/precision/SKILL.md"]
+        },
+        {
+          "name": "specialist-knowledge",
+          "patterns": ["\\b(medical|medicine|legal|law|financial advice|advanced science|scientific|niche api|obscure|translate|translation|multilingual)\\b"],
+          "skills": ["models/gpt-oss-20b/specialist-knowledge/SKILL.md", "core/research/SKILL.md"]
+        },
+        {
+          "name": "polished-writing",
+          "patterns": ["\\b(polish|rewrite|creative writing|story|prose|copywriting|tone|natural[- ]sounding)\\b"],
+          "skills": ["models/gpt-oss-20b/polished-writing/SKILL.md"]
+        }
+      ]
+    }
+  },
   "agents": {
     "grace": {"name":"Grace","role":"Debugger","skill":"agents/grace/SKILL.md"},
     "ada": {"name":"Ada","role":"Architect","skill":"agents/ada/SKILL.md"},

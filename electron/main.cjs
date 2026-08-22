@@ -1,6 +1,8 @@
 const{app,BrowserWindow,ipcMain,net,shell}=require('electron')
 const fs=require('node:fs/promises'),fsNative=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto'),{Readable}=require('node:stream'),{pipeline}=require('node:stream/promises'),{isNewer,selectAsset}=require('./updater.cjs')
+const{loadAgentSkill,loadModelSkillBundle}=require('./skills.cjs')
 const root=()=>path.join(app.getPath('userData'),'sudoN'),chats=()=>path.join(root(),'chats'),config=()=>path.join(root(),'config.json'),safe=id=>String(id).replace(/[^a-zA-Z0-9_-]/g,'')
+const skillsRoot=()=>path.join(__dirname,'..','skills')
 async function json(file,fallback){try{return JSON.parse(await fs.readFile(file,'utf8'))}catch{return fallback}}
 async function records(file){const lines=await fs.readFile(file,'utf8').catch(()=> '');return lines.split('\n').filter(Boolean).flatMap(line=>{try{return[JSON.parse(line)]}catch{return[]}})}
 async function load(){
@@ -24,7 +26,8 @@ async function sync(data){
 async function search({query,chatId}){const data=await load();if(!data||!query?.trim())return[];const q=query.toLowerCase(),out=[];for(const c of data.conversations??[]){if(chatId&&c.id!==chatId)continue;for(const m of c.messages??[])if(m.content.toLowerCase().includes(q))out.push({chatId:c.id,chatTitle:c.title,messageId:m.id,role:m.role,content:m.content,createdAt:m.createdAt})}return out.slice(-12)}
 let syncQueue=Promise.resolve()
 ipcMain.handle('store:load',load);ipcMain.handle('store:sync',(_,data)=>{syncQueue=syncQueue.then(()=>sync(data));return syncQueue});ipcMain.handle('history:search',(_,args)=>search(args));ipcMain.handle('store:clear',async()=>{await fs.rm(root(),{recursive:true,force:true});return true})
-ipcMain.handle('skill:load',async(_,name)=>{const registry=await json(path.join(__dirname,'..','skills','registry.json'),{}),entry=registry.agents?.[String(name)];if(!entry)return null;return fs.readFile(path.join(__dirname,'..','skills',entry.skill),'utf8').catch(()=>null)})
+ipcMain.handle('skill:load',(_,name)=>loadAgentSkill(skillsRoot(),name))
+ipcMain.handle('skill:model',(_,model,task)=>loadModelSkillBundle(skillsRoot(),model,task))
 const releaseApi='https://api.github.com/repos/Jonardi123/local-chat-studio/releases/latest'
 async function latestRelease(){const response=await net.fetch(releaseApi,{headers:{Accept:'application/vnd.github+json','User-Agent':'sudoN-updater'}});if(!response.ok)throw new Error(`Update service returned HTTP ${response.status}.`);return response.json()}
 async function updateInfo(){const release=await latestRelease(),asset=selectAsset(release,process.platform),latest=String(release.tag_name??'').replace(/^v/,'');return{current:app.getVersion(),latest,available:isNewer(latest,app.getVersion()),notes:String(release.body??'').slice(0,4000),assetName:asset?.name??null,assetSize:asset?.size??null,supported:Boolean(asset&&/^sha256:[a-f0-9]{64}$/i.test(String(asset.digest??'')))}}
