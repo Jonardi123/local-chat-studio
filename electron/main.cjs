@@ -1,20 +1,29 @@
-const { app, BrowserWindow, shell } = require('electron')
-const path = require('node:path')
-
-function createWindow() {
-  const window = new BrowserWindow({
-    width: 1280, height: 820, minWidth: 360, minHeight: 600,
-    backgroundColor: '#f6f4ef', title: 'Local Chat Studio', autoHideMenuBar: true,
-    webPreferences: { contextIsolation: true, nodeIntegration: false, sandbox: true },
-  })
-  window.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:\/\//.test(url)) shell.openExternal(url)
-    return { action: 'deny' }
-  })
-  window.webContents.on('will-navigate', (event, url) => {
-    if (url !== window.webContents.getURL()) { event.preventDefault(); if (/^https?:\/\//.test(url)) shell.openExternal(url) }
-  })
-  window.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
+const{app,BrowserWindow,ipcMain,shell}=require('electron')
+const fs=require('node:fs/promises'),path=require('node:path')
+const root=()=>path.join(app.getPath('userData'),'sudoN'),chats=()=>path.join(root(),'chats'),config=()=>path.join(root(),'config.json'),safe=id=>String(id).replace(/[^a-zA-Z0-9_-]/g,'')
+async function json(file,fallback){try{return JSON.parse(await fs.readFile(file,'utf8'))}catch{return fallback}}
+async function records(file){const lines=await fs.readFile(file,'utf8').catch(()=> '');return lines.split('\n').filter(Boolean).flatMap(line=>{try{return[JSON.parse(line)]}catch{return[]}})}
+async function load(){
+ const data=await json(config(),null);if(!data)return null
+ const loaded=new Map()
+ for(const c of data.conversations??[]){const dir=path.join(chats(),safe(c.id)),meta=await json(path.join(dir,'metadata.json'),{}),raw=await records(path.join(dir,'messages.jsonl')),latest=new Map(raw.map(m=>[m.id,m])),ids=meta.activeMessageIds??[...latest.keys()];loaded.set(c.id,{...c,...meta,messages:ids.map(id=>latest.get(id)).filter(Boolean),checkpoint:await json(path.join(dir,'checkpoint.json'),undefined)})}
+ for(const c of loaded.values())if(c.parentChatId&&c.parentMessageId){const parent=loaded.get(c.parentChatId);if(parent){const at=parent.messages.findIndex(m=>m.id===c.parentMessageId);if(at>=0)c.messages=[...parent.messages.slice(0,at+1),...c.messages]}}
+ data.conversations=[...loaded.values()];return data
 }
-app.whenReady().then(() => { createWindow(); app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow() }) })
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+async function sync(data){
+ await fs.mkdir(chats(),{recursive:true})
+ for(const c of data.conversations??[]){
+  const dir=path.join(chats(),safe(c.id));await fs.mkdir(path.join(dir,'attachments'),{recursive:true})
+  const file=path.join(dir,'messages.jsonl'),raw=await records(file),latest=new Map(raw.map(m=>[m.id,m])),parentAt=c.parentMessageId?c.messages.findIndex(m=>m.id===c.parentMessageId):-1,own=parentAt>=0?c.messages.slice(parentAt+1):c.messages,fresh=own.filter(m=>m.content&&latest.get(m.id)?.content!==m.content)
+  if(fresh.length)await fs.appendFile(file,fresh.map(m=>JSON.stringify(m)).join('\n')+'\n')
+  await fs.writeFile(path.join(dir,'metadata.json'),JSON.stringify({version:1,id:c.id,title:c.title,createdAt:c.createdAt,updatedAt:c.updatedAt,parentChatId:c.parentChatId,parentMessageId:c.parentMessageId,activeMessageIds:own.filter(m=>m.content).map(m=>m.id)},null,2))
+  if(c.checkpoint)await fs.writeFile(path.join(dir,'checkpoint.json'),JSON.stringify(c.checkpoint,null,2))
+ }
+ const compact={...data,conversations:(data.conversations??[]).map(c=>({...c,messages:[]}))};await fs.writeFile(config(),JSON.stringify(compact,null,2));return true
+}
+async function search({query,chatId}){const data=await load();if(!data||!query?.trim())return[];const q=query.toLowerCase(),out=[];for(const c of data.conversations??[]){if(chatId&&c.id!==chatId)continue;for(const m of c.messages??[])if(m.content.toLowerCase().includes(q))out.push({chatId:c.id,chatTitle:c.title,messageId:m.id,role:m.role,content:m.content,createdAt:m.createdAt})}return out.slice(-12)}
+let syncQueue=Promise.resolve()
+ipcMain.handle('store:load',load);ipcMain.handle('store:sync',(_,data)=>{syncQueue=syncQueue.then(()=>sync(data));return syncQueue});ipcMain.handle('history:search',(_,args)=>search(args));ipcMain.handle('store:clear',async()=>{await fs.rm(root(),{recursive:true,force:true});return true})
+ipcMain.handle('skill:load',async(_,name)=>{const registry=await json(path.join(__dirname,'..','skills','registry.json'),{}),entry=registry.agents?.[String(name)];if(!entry)return null;return fs.readFile(path.join(__dirname,'..','skills',entry.skill),'utf8').catch(()=>null)})
+function createWindow(){const window=new BrowserWindow({width:1280,height:820,minWidth:360,minHeight:600,backgroundColor:'#f6f4ef',title:'sudoN',autoHideMenuBar:true,webPreferences:{preload:path.join(__dirname,'preload.cjs'),contextIsolation:true,nodeIntegration:false,sandbox:true}});window.webContents.setWindowOpenHandler(({url})=>{if(/^https?:\/\//.test(url))shell.openExternal(url);return{action:'deny'}});window.webContents.on('will-navigate',(event,url)=>{if(url!==window.webContents.getURL()){event.preventDefault();if(/^https?:\/\//.test(url))shell.openExternal(url)}});window.loadFile(path.join(__dirname,'..','dist','index.html'))}
+app.whenReady().then(()=>{createWindow();app.on('activate',()=>{if(BrowserWindow.getAllWindows().length===0)createWindow()})});app.on('window-all-closed',()=>{if(process.platform!=='darwin')app.quit()})

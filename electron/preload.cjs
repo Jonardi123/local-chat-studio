@@ -1,0 +1,4 @@
+const{contextBridge,ipcRenderer}=require('electron')
+contextBridge.exposeInMainWorld('sudoNStore',{
+ load:()=>ipcRenderer.invoke('store:load'),sync:data=>ipcRenderer.invoke('store:sync',data),search:(query,chatId)=>ipcRenderer.invoke('history:search',{query,chatId}),skill:name=>ipcRenderer.invoke('skill:load',name),clear:()=>ipcRenderer.invoke('store:clear')
+})
