@@ -1,9 +1,72 @@
 {
   "name": "local-chat-studio",
+  "description": "A private desktop chat client for local OpenAI-compatible LLM servers",
+  "author": "Jonardi123",
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "scripts": {"dev":"vite","build":"tsc -b && vite build","typecheck":"tsc -b --pretty false","lint":"oxlint src","test":"vitest run","preview":"vite preview"},
-  "dependencies": {"react":"^19.2.8","react-dom":"^19.2.8","react-markdown":"^10.1.0","remark-gfm":"^4.0.1"},
-  "devDependencies": {"@types/node":"^24.13.3","@types/react":"^19.2.17","@types/react-dom":"^19.2.3","@vitejs/plugin-react":"^6.0.4","oxlint":"^1.75.0","typescript":"~6.0.2","vite":"^8.2.0","vitest":"^4.1.0"}
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "typecheck": "tsc -b --pretty false",
+    "lint": "oxlint src electron",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "desktop": "npm run build && electron .",
+    "desktop:dist": "npm run build && electron-builder"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.4",
+    "electron": "^43.4.1",
+    "electron-builder": "^26.15.3",
+    "oxlint": "^1.75.0",
+    "sharp": "^0.35.3",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.0",
+    "vitest": "^4.1.0"
+  },
+  "build": {
+    "appId": "com.localchat.studio",
+    "productName": "Local Chat Studio",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "artifactName": "Local-Chat-Studio-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "identity": null
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Utility",
+      "synopsis": "Private local AI chat client"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
 }
