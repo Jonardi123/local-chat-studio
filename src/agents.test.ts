@@ -1,0 +1,2 @@
+import{describe,expect,it}from'vitest';import{requestedAgents}from'./agents'
+describe('agent policy',()=>{it('never selects agents without an explicit request',()=>expect(requestedAgents('debug this crash')).toEqual([]));it('selects named agents when explicitly requested',()=>expect(requestedAgents('use agents Grace and Margaret')).toEqual(['grace','margaret']));it('chooses a relevant role for a generic explicit request',()=>expect(requestedAgents('use an agent to debug this')).toEqual(['grace']))})

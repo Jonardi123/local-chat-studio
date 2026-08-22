@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "core": ["coding","context-management","conversation-recall","tool-use","filesystem","terminal","git","testing","failure-recovery","self-review","research","autonomous-worker","performance-tuning","full-access"],
+  "agents": {
+    "grace": {"name":"Grace","role":"Debugger","skill":"agents/grace/SKILL.md"},
+    "ada": {"name":"Ada","role":"Architect","skill":"agents/ada/SKILL.md"},
+    "knuth": {"name":"Knuth","role":"Reviewer","skill":"agents/knuth/SKILL.md"},
+    "margaret": {"name":"Margaret","role":"Tester","skill":"agents/margaret/SKILL.md"},
+    "linus": {"name":"Linus","role":"Systems","skill":"agents/linus/SKILL.md"},
+    "turing": {"name":"Turing","role":"Researcher","skill":"agents/turing/SKILL.md"}
+  },
+  "agentPolicy": "explicit-user-request-only"
+}

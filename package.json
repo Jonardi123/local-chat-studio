@@ -1,9 +1,9 @@
 {
-  "name": "local-chat-studio",
-  "description": "A private desktop chat client for local OpenAI-compatible LLM servers",
+  "name": "sudon",
+  "description": "sudoN — a focused desktop client for local AI",
   "author": "Jonardi123",
   "private": true,
-  "version": "1.0.2",
+  "version": "2.0.0",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -36,18 +36,19 @@
     "vitest": "^4.1.0"
   },
   "build": {
-    "appId": "com.localchat.studio",
-    "productName": "Local Chat Studio",
+    "appId": "app.sudon.client",
+    "productName": "sudoN",
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "skills/**/*"
     ],
     "asar": true,
-    "artifactName": "Local-Chat-Studio-${version}-${os}-${arch}.${ext}",
+    "artifactName": "sudoN-${version}-${os}-${arch}.${ext}",
     "mac": {
       "target": [
         "dmg",

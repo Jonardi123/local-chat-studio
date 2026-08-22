@@ -1,68 +1,69 @@
-# Local Chat Studio
+# sudoN
 
-A polished, private browser client for llama.cpp and other OpenAI-compatible chat servers. Conversations, preferences, and the API key stay in the browser's local storage; there is no application backend or analytics.
+sudoN is a lightweight desktop and browser client for a locally hosted OpenAI-compatible model. It is designed around a 16k active Qwen context while preserving complete searchable chat history outside the model window.
 
-## Download the desktop app
+## Download
 
-Open the repository's **Releases** page and download the installer for your computer:
+Download the latest installer from **GitHub Releases**:
 
-- **macOS:** `.dmg` (universal Intel and Apple Silicon build)
-- **Windows:** `.exe` installer
-- **Linux:** `.AppImage`
+- macOS: universal `.dmg` for Apple Silicon and Intel
+- Windows: `.exe` installer
+- Linux: `.AppImage`
 
-The first release is unsigned. On macOS, Control-click the app, choose **Open**, then confirm **Open**. On Windows, SmartScreen may require **More info → Run anyway**. Only download builds from this repository's Releases page.
+Releases are currently unsigned. On macOS, Control-click sudoN and choose **Open** on first launch. On Windows, use **More info → Run anyway** if SmartScreen appears.
 
-## Start locally
+## Connect to Qwen
 
-Requires Node.js 20.19+ (or 22.12+) and npm.
+Use the server URL `http://192.168.100.6:8080/v1`, enter the bearer API key, and select **Test connection**. Plain HTTP should only be used on a trusted private LAN.
+
+## Features
+
+- Four-level reasoning control: Instant, Low, Medium, and Extra High
+- Live 16k active-context ring with automatic non-destructive checkpoints near 8k
+- Raw persistent chat archives, separate checkpoints, full-text recall, and JSON backup
+- Conversation branching with parent relationships and independent future context
+- Explicit-only named specialists: Grace, Ada, Knuth, Margaret, Linus, and Turing
+- Modular Qwen engineering skills shipped in `skills/`
+- Streaming Markdown chat, editing, regeneration, search, themes, and mobile layout
+
+## Local development
+
+Requires Node.js 20.19+ or 22.12+.
 
 ```bash
 npm install
-npm run dev -- --host
-```
-
-Open the address Vite prints. On first launch, enter `http://192.168.100.6:8080/v1`, paste the bearer API key, optionally enter a model ID, click **Test connection**, then **Save & continue**.
-
-The key is never included in this repository. It is stored unencrypted in that browser's localStorage so this static app can make requests. Do not use a shared browser profile. Plain HTTP exposes requests to devices that can observe the network, so use it only on a trusted private LAN. Prefer HTTPS or a VPN elsewhere.
-
-## Verification and production build
-
-```bash
+npm run dev
 npm run typecheck
 npm test
 npm run lint
 npm run build
-npm run preview -- --host
 ```
 
-To launch or package the desktop edition from source:
+Desktop commands:
 
 ```bash
 npm run desktop
 npm run desktop:dist
 ```
 
-Deployable static files go to `dist/` (ignored by Git). The LLM endpoint must allow the web origin through CORS.
+## Storage and privacy
 
-## Features
+The desktop app stores data below Electron's platform application-data directory in `sudoN/chats/<chat-id>/`:
 
-- Streaming OpenAI-compatible chat with stop, retry, edit, and regenerate
-- `/models` connection testing and discovery
-- Conversation search, rename, delete, and JSON import/export
-- Safe Markdown, tables, links, and fenced code copy controls
-- System prompt, temperature, output token, model, and theme settings
-- Versioned local persistence, responsive layout, focus styles, and reduced motion
+- `messages.jsonl`: append-only raw message archive
+- `checkpoint.json`: compact active-context state
+- `metadata.json`: versioned chat and branch relationships
+- `attachments/`: reserved per-chat attachment storage
 
-## Troubleshooting
+An active-message index keeps edits and regeneration correct without deleting raw archive records. Branches reference their parent prefix and store only their own future messages. The browser edition uses versioned localStorage as a fallback. API keys are never committed; there is no telemetry or model-side filesystem/shell access.
 
-- **Cannot reach server:** verify llama.cpp listens on `0.0.0.0`, port 8080 is reachable, and the URL includes `/v1`.
-- **401:** replace the saved key in Settings with the exact server key.
-- **CORS error:** permit the UI origin in your server/proxy. Successful terminal `curl` does not prove browser CORS works.
-- **Slow output:** a 27B model on the RX 570 runs at roughly a few tokens/second. Reduce output tokens or history, or use a smaller model.
-- **Wrong model:** use Test connection and select an advertised ID, or leave model blank for a single-model server.
+## Architecture
 
-## Architecture and privacy
+- `src/api.ts`: OpenAI-compatible model and SSE client
+- `src/context.ts`: token estimation, checkpointing, and active-context assembly
+- `src/storage.ts`: migration, browser fallback, native bridge, and archive retrieval
+- `electron/main.cjs`: native append-friendly storage and indexed search
+- `src/agents.ts`: explicit agent selection and specialist runtime prompts
+- `skills/registry.json`: core and named-agent skill resolution
 
-`src/api.ts` is the typed fetch/SSE layer, `src/storage.ts` owns migration and local persistence, and `src/App.tsx` contains the dependency-light UI. `electron/main.cjs` is a sandboxed desktop shell with Node integration disabled. React Markdown escapes raw HTML by default. There is no model-side shell, filesystem tool, telemetry, remote font, or tracking integration. Requests go only to the endpoint entered in Settings.
-
-MIT licensed; see [LICENSE](LICENSE).
+MIT licensed.
