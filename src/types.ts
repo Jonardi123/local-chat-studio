@@ -13,3 +13,5 @@ export interface StreamResult{content:string;elapsedMs:number;tokensPerSecond?:n
 export interface ContextState{messages:ChatRequestMessage[];usedTokens:number;checkpoint?:Checkpoint;compacted:boolean}
 export interface AgentRun{id:string;name:AgentName;label:string;role:string;status:AgentStatus;result?:string;error?:string}
 export interface ArchiveHit{chatId:string;chatTitle:string;messageId:string;role:Role;content:string;createdAt:number}
+export interface UpdateInfo{current:string;latest:string;available:boolean;notes:string;assetName:string|null;assetSize:number|null;supported:boolean}
+export interface UpdateProgress{received:number;total:number;percent:number|null}
