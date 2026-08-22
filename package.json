@@ -3,7 +3,7 @@
   "description": "A private desktop chat client for local OpenAI-compatible LLM servers",
   "author": "Jonardi123",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.0.1",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
