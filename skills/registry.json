@@ -1,7 +1,7 @@
 {
   "version": 1,
   "defaultModel": "gpt-oss-20b",
-  "core": ["coding","context-management","conversation-recall","tool-use","filesystem","terminal","git","testing","failure-recovery","self-review","research","autonomous-worker","performance-tuning","full-access"],
+  "core": ["coding","context-management","conversation-recall","tool-use","filesystem","terminal","git","testing","failure-recovery","self-review","research","web-research","autonomous-worker","performance-tuning","full-access"],
   "models": {
     "gpt-oss-20b": {
       "match": ["gpt-oss-20b", "gpt_oss-20b", "gpt-oss:20b"],
@@ -12,6 +12,11 @@
         "core/failure-recovery/SKILL.md"
       ],
       "routes": [
+        {
+          "name": "web-research",
+          "patterns": ["\\b(search (the )?web|look up|online|latest|current|today|news|recent|right now|as of)\\b"],
+          "skills": ["core/web-research/SKILL.md", "core/research/SKILL.md"]
+        },
         {
           "name": "long-tasks",
           "patterns": ["\\b(implement|build|refactor|migrate|repository|codebase|multi[- ]step|long[- ]running|end[- ]to[- ]end)\\b"],
