@@ -36,6 +36,7 @@ import type {
   ReasoningMode,
   Settings,
 } from "./types";
+import { shouldSearchWeb, webEvidenceMessage } from "./web-search";
 import "./App.css";
 /* oxlint-disable react/purity -- Date.now is used only inside event and async action callbacks. */
 const uid = makeId,
@@ -897,21 +898,17 @@ export default function App() {
           : []),
       );
       const needsWeb =
-        data.settings.webSearchEnabled &&
-        /\b(search (the )?web|look up|online|latest|current|today|news|recent|right now|as of)\b/i.test(
-          content,
-        );
+        data.settings.webSearchEnabled && shouldSearchWeb(content);
       if (needsWeb) {
         setActivity("Searching the web…");
         const results = await window.sudoNStore?.webSearch(
           content,
           data.settings.searxngUrl,
         );
-        if (results?.length)
-          messages.push({
-            role: "system",
-            content: `Current web search results. Cite these URLs in the answer and distinguish source facts from inference:\n${results.map((r, i) => `[${i + 1}] ${r.title}\n${r.url}\n${r.content}`).join("\n\n")}`,
-          });
+        messages.push({
+          role: "system",
+          content: webEvidenceMessage(results ?? []),
+        });
       }
       setActivity("Generating…");
       const result = await streamChat({

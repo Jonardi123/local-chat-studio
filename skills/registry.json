@@ -14,7 +14,7 @@
       "routes": [
         {
           "name": "web-research",
-          "patterns": ["\\b(search (the )?web|look up|online|latest|current|today|news|recent|right now|as of)\\b"],
+          "patterns": ["\\b(search (the )?web|web search|browse|look up|find online|internet|online|latest|current|currently|today|tonight|recent|recently|news|right now|as of|this (week|month|year)|real[- ]?time|up[- ]to[- ]date|weather|forecast|temperature|price|stock|crypto|exchange rate|score|standings|schedule|election|president|prime minister|ceo|release|version|availability|outage|traffic|(who|which (team|player|candidate)) won|winner|final result|game result|match result)\\b"],
           "skills": ["core/web-research/SKILL.md", "core/research/SKILL.md"]
         },
         {
