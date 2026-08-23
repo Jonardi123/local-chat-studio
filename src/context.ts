@@ -1,5 +1,5 @@
 import type{Checkpoint,ChatRequestMessage,ContextState,Conversation,Message,Settings}from'./types'
-export const CONTEXT_LIMIT=16384, CHECKPOINT_AT=8000, TARGET_AFTER_COMPACTION=6000
+export const CONTEXT_LIMIT=28672, CHECKPOINT_AT=8000, TARGET_AFTER_COMPACTION=6000
 export const estimateTokens=(text:string)=>Math.max(1,Math.ceil(text.length/4))
 const messageTokens=(m:{content:string})=>estimateTokens(m.content)+6
 export function createCheckpoint(messages:Message[]):Checkpoint|undefined{

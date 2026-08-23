@@ -3,7 +3,7 @@
   "description": "sudoN — a focused desktop client for local AI",
   "author": "Jonardi123",
   "private": true,
-  "version": "2.1.1",
+  "version": "2.1.2",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
