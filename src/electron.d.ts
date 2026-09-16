@@ -11,6 +11,7 @@ declare global {
       load: () => Promise<AppData | null>;
       sync: (data: AppData) => Promise<boolean>;
       search: (query: string, chatId?: string) => Promise<ArchiveHit[]>;
+      deleteChat: (id: string) => Promise<boolean>;
       skill: (name: string) => Promise<string | null>;
       modelSkills: (model: string, task: string) => Promise<string>;
       webSearch: (query: string, baseUrl: string) => Promise<WebSearchResult[]>;

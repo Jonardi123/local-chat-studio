@@ -742,6 +742,7 @@ export default function App() {
             ? (conversations[0]?.id ?? null)
             : data.activeId,
       });
+      void window.sudoNStore?.deleteChat(c.id);
     }
   };
   const runAgents = async (text: string, ctl: AbortController) => {
