@@ -1,31 +1,13 @@
 const{app,BrowserWindow,dialog,ipcMain,net,shell}=require('electron')
 const fs=require('node:fs/promises'),fsNative=require('node:fs'),path=require('node:path'),{createHash}=require('node:crypto'),{Readable}=require('node:stream'),{pipeline}=require('node:stream/promises'),{isNewer,selectAsset}=require('./updater.cjs')
 const{loadAgentSkill,loadModelSkillBundle}=require('./skills.cjs')
-const root=()=>path.join(app.getPath('userData'),'sudoN'),chats=()=>path.join(root(),'chats'),config=()=>path.join(root(),'config.json'),safe=id=>String(id).replace(/[^a-zA-Z0-9_-]/g,'')
+const{createPersistence}=require('./persistence.cjs')
+const root=()=>path.join(app.getPath('userData'),'sudoN')
 const skillsRoot=()=>path.join(__dirname,'..','skills')
-async function json(file,fallback){try{return JSON.parse(await fs.readFile(file,'utf8'))}catch{return fallback}}
-async function records(file){const lines=await fs.readFile(file,'utf8').catch(()=> '');return lines.split('\n').filter(Boolean).flatMap(line=>{try{return[JSON.parse(line)]}catch{return[]}})}
-async function load(){
- const data=await json(config(),null);if(!data)return null
- const loaded=new Map()
- for(const c of data.conversations??[]){const dir=path.join(chats(),safe(c.id)),meta=await json(path.join(dir,'metadata.json'),{}),raw=await records(path.join(dir,'messages.jsonl')),latest=new Map(raw.map(m=>[m.id,m])),ids=meta.activeMessageIds??[...latest.keys()];loaded.set(c.id,{...c,...meta,messages:ids.map(id=>latest.get(id)).filter(Boolean),checkpoint:await json(path.join(dir,'checkpoint.json'),undefined)})}
- for(const c of loaded.values())if(c.parentChatId&&c.parentMessageId){const parent=loaded.get(c.parentChatId);if(parent){const at=parent.messages.findIndex(m=>m.id===c.parentMessageId);if(at>=0)c.messages=[...parent.messages.slice(0,at+1),...c.messages]}}
- data.conversations=[...loaded.values()];return data
-}
-async function sync(data){
- await fs.mkdir(chats(),{recursive:true})
- for(const c of data.conversations??[]){
-  const dir=path.join(chats(),safe(c.id));await fs.mkdir(path.join(dir,'attachments'),{recursive:true})
-  const file=path.join(dir,'messages.jsonl'),raw=await records(file),latest=new Map(raw.map(m=>[m.id,m])),parentAt=c.parentMessageId?c.messages.findIndex(m=>m.id===c.parentMessageId):-1,own=parentAt>=0?c.messages.slice(parentAt+1):c.messages,fresh=own.filter(m=>m.content&&latest.get(m.id)?.content!==m.content)
-  if(fresh.length)await fs.appendFile(file,fresh.map(m=>JSON.stringify(m)).join('\n')+'\n')
-  await fs.writeFile(path.join(dir,'metadata.json'),JSON.stringify({version:1,id:c.id,title:c.title,createdAt:c.createdAt,updatedAt:c.updatedAt,parentChatId:c.parentChatId,parentMessageId:c.parentMessageId,activeMessageIds:own.filter(m=>m.content).map(m=>m.id)},null,2))
-  if(c.checkpoint)await fs.writeFile(path.join(dir,'checkpoint.json'),JSON.stringify(c.checkpoint,null,2))
- }
- const compact={...data,conversations:(data.conversations??[]).map(c=>({...c,messages:[]}))};await fs.writeFile(config(),JSON.stringify(compact,null,2));return true
-}
-async function search({query,chatId}){const data=await load();if(!data||!query?.trim())return[];const q=query.toLowerCase(),out=[];for(const c of data.conversations??[]){if(chatId&&c.id!==chatId)continue;for(const m of c.messages??[])if(m.content.toLowerCase().includes(q))out.push({chatId:c.id,chatTitle:c.title,messageId:m.id,role:m.role,content:m.content,createdAt:m.createdAt})}return out.slice(-12)}
-let syncQueue=Promise.resolve()
-ipcMain.handle('store:load',load);ipcMain.handle('store:sync',(_,data)=>{syncQueue=syncQueue.then(()=>sync(data));return syncQueue});ipcMain.handle('history:search',(_,args)=>search(args));ipcMain.handle('history:delete',async(_,id)=>{const safeId=safe(id);if(!safeId)return true;await fs.rm(path.join(chats(),safeId),{recursive:true,force:true});return true});ipcMain.handle('store:clear',async()=>{await fs.rm(root(),{recursive:true,force:true});return true})
+let store
+const persistence=()=>{if(!store)store=createPersistence(root());return store}
+async function search({query,chatId}){const data=await persistence().load();if(!data||!query?.trim())return[];const q=query.toLowerCase(),out=[];for(const c of data.conversations??[]){if(chatId&&c.id!==chatId)continue;for(const m of c.messages??[])if(m.content.toLowerCase().includes(q))out.push({chatId:c.id,chatTitle:c.title,messageId:m.id,role:m.role,content:m.content,createdAt:m.createdAt})}return out.slice(-12)}
+ipcMain.handle('store:load',()=>persistence().load());ipcMain.handle('store:sync',(_,data)=>persistence().enqueue(()=>persistence().sync(data)));ipcMain.handle('history:search',(_,args)=>search(args));ipcMain.handle('history:delete',(_,id)=>persistence().enqueue(()=>persistence().deleteChat(id)));ipcMain.handle('store:clear',async()=>{await fs.rm(root(),{recursive:true,force:true});return true})
 ipcMain.handle('skill:load',(_,name)=>loadAgentSkill(skillsRoot(),name))
 ipcMain.handle('skill:model',(_,model,task)=>loadModelSkillBundle(skillsRoot(),model,task))
 ipcMain.handle('web:search',async(_,{query,baseUrl})=>{let endpoint;try{endpoint=new URL('/search',String(baseUrl))}catch{throw new Error('The SearXNG address in Settings is invalid.')}if(!['http:','https:'].includes(endpoint.protocol))throw new Error('The SearXNG address must use HTTP or HTTPS.');endpoint.search=new URLSearchParams({q:String(query).slice(0,400),format:'json',categories:'general',language:'auto',safesearch:'1'}).toString();const response=await net.fetch(endpoint.toString(),{headers:{Accept:'application/json','User-Agent':'sudoN-web-search'}});if(!response.ok)throw new Error(`SearXNG search returned HTTP ${response.status}.`);const data=await response.json();return(data.results??[]).slice(0,5).map(result=>({title:String(result.title??''),url:String(result.url??''),content:String(result.content??'').slice(0,1200)}))})
