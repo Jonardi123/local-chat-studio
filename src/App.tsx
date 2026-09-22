@@ -733,7 +733,12 @@ export default function App() {
   };
   const remove = (c: Conversation) => {
     if (confirm(`Delete “${c.title}”?`)) {
-      const conversations = data.conversations.filter((x) => x.id !== c.id);
+      const conversations = data.conversations
+        .filter((x) => x.id !== c.id)
+        .map((x) => {
+          if (x.parentChatId !== c.id) return x;
+          return { ...x, parentChatId: undefined, parentMessageId: undefined, messages: [...x.messages] };
+        });
       change({
         ...data,
         conversations,
@@ -931,7 +936,12 @@ export default function App() {
         updatedAt: Date.now(),
       }));
     } catch (e) {
-      if (!(e instanceof DOMException && e.name === "AbortError")) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        updateConversation(id, (c) => ({
+          ...c,
+          messages: c.messages.filter((m) => m.id !== assistant.id || Boolean(m.content)),
+        }));
+      } else {
         setError(e instanceof Error ? e.message : "Generation failed.");
         updateConversation(id, (c) => ({
           ...c,

@@ -21,11 +21,15 @@ async function sync(data){
   await fs.writeFile(path.join(dir,'metadata.json'),JSON.stringify({version:1,id:c.id,title:c.title,createdAt:c.createdAt,updatedAt:c.updatedAt,parentChatId:c.parentChatId,parentMessageId:c.parentMessageId,activeMessageIds:own.filter(m=>m.content).map(m=>m.id)},null,2))
   if(c.checkpoint)await fs.writeFile(path.join(dir,'checkpoint.json'),JSON.stringify(c.checkpoint,null,2))
  }
- const compact={...data,conversations:(data.conversations??[]).map(c=>({...c,messages:[]}))};await fs.writeFile(config(),JSON.stringify(compact,null,2));return true
+ const compact={...data,conversations:(data.conversations??[]).map(c=>({...c,messages:[]}))};await fs.writeFile(config(),JSON.stringify(compact,null,2))
+ const activeDirs=new Set((data.conversations??[]).map(c=>safe(c.id)))
+ for(const entry of await fs.readdir(chats(),{withFileTypes:true}))if(entry.isDirectory()&&!activeDirs.has(entry.name))await fs.rm(path.join(chats(),entry.name),{recursive:true,force:true})
+ return true
 }
 async function search({query,chatId}){const data=await load();if(!data||!query?.trim())return[];const q=query.toLowerCase(),out=[];for(const c of data.conversations??[]){if(chatId&&c.id!==chatId)continue;for(const m of c.messages??[])if(m.content.toLowerCase().includes(q))out.push({chatId:c.id,chatTitle:c.title,messageId:m.id,role:m.role,content:m.content,createdAt:m.createdAt})}return out.slice(-12)}
 let syncQueue=Promise.resolve()
-ipcMain.handle('store:load',load);ipcMain.handle('store:sync',(_,data)=>{syncQueue=syncQueue.then(()=>sync(data));return syncQueue});ipcMain.handle('history:search',(_,args)=>search(args));ipcMain.handle('store:clear',async()=>{await fs.rm(root(),{recursive:true,force:true});return true})
+function enqueueStoreOperation(operation){const current=syncQueue.catch(()=>undefined).then(operation);syncQueue=current.catch(()=>undefined);return current}
+ipcMain.handle('store:load',load);ipcMain.handle('store:sync',(_,data)=>enqueueStoreOperation(()=>sync(data)));ipcMain.handle('history:search',(_,args)=>search(args));ipcMain.handle('store:clear',()=>enqueueStoreOperation(async()=>{await fs.rm(root(),{recursive:true,force:true});return true}))
 ipcMain.handle('skill:load',(_,name)=>loadAgentSkill(skillsRoot(),name))
 ipcMain.handle('skill:model',(_,model,task)=>loadModelSkillBundle(skillsRoot(),model,task))
 ipcMain.handle('web:search',async(_,{query,baseUrl})=>{let endpoint;try{endpoint=new URL('/search',String(baseUrl))}catch{throw new Error('The SearXNG address in Settings is invalid.')}if(!['http:','https:'].includes(endpoint.protocol))throw new Error('The SearXNG address must use HTTP or HTTPS.');endpoint.search=new URLSearchParams({q:String(query).slice(0,400),format:'json',categories:'general',language:'auto',safesearch:'1'}).toString();const response=await net.fetch(endpoint.toString(),{headers:{Accept:'application/json','User-Agent':'sudoN-web-search'}});if(!response.ok)throw new Error(`SearXNG search returned HTTP ${response.status}.`);const data=await response.json();return(data.results??[]).slice(0,5).map(result=>({title:String(result.title??''),url:String(result.url??''),content:String(result.content??'').slice(0,1200)}))})

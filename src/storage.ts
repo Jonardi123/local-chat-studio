@@ -64,12 +64,16 @@ export function saveData(data: AppData): void {
     nativePending = data;
     if (nativeTimer) clearTimeout(nativeTimer);
     nativeTimer = setTimeout(() => {
-      if (nativePending) void window.sudoNStore?.sync(nativePending);
+      nativeTimer = undefined;
+      if (nativePending) void window.sudoNStore?.sync(nativePending).catch((error) => console.error("Native chat history sync failed.", error));
       nativePending = undefined;
     }, 450);
   }
 }
 export async function clearData(): Promise<void> {
+  if (nativeTimer) clearTimeout(nativeTimer);
+  nativeTimer = undefined;
+  nativePending = undefined;
   localStorage.removeItem(STORAGE_KEY);
   localStorage.removeItem(LEGACY_KEY);
   await window.sudoNStore?.clear();
